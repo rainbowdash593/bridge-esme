@@ -79,8 +79,11 @@ class Esme {
     this.isConnected = true;
   }
 
-  protected async bindTransceiver(session) {
+  protected async bindTransceiver(session, timeout = 5) {
     return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        reject(new Error('Bind timeout error'));
+      }, timeout * 1000);
       session.bind_transceiver(
         {
           system_id: this.conn.system_id,
@@ -98,8 +101,11 @@ class Esme {
     });
   }
 
-  protected async bindTransmitter(session) {
+  protected async bindTransmitter(session, timeout = 5) {
     return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        reject(new Error('Bind timeout error'));
+      }, timeout * 1000);
       session.bind_transmitter(
         {
           system_id: this.conn.system_id,
@@ -117,8 +123,11 @@ class Esme {
     });
   }
 
-  protected async bindReceiver(session) {
+  protected async bindReceiver(session, timeout = 5) {
     return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        reject(new Error('Bind timeout error'));
+      }, timeout * 1000);
       session.bind_receiver(
         {
           system_id: this.conn.system_id,
@@ -143,9 +152,15 @@ class Esme {
       this.emitter.emit(EsmeEvent.ERROR, this.conn, e);
     });
 
+    session.on('close', () => {
+      this.emitter.emit(EsmeEvent.CLOSED, this.conn);
+    });
+
     session.on('deliver_sm', (pdu) => {
       this.emitter.emit(EsmeEvent.DLR, this.conn, pdu);
     });
+
+    //TODO on submit_sm_resp (might be multipart)
   }
 
   protected async createSession(): Promise<any> {
@@ -219,6 +234,7 @@ class Esme {
         (pdu, e) => {
           console.log(`Sms with id: ${sms.id} submit_sm failed`, e);
           this.emitter.emit(EsmeEvent.SEND_FAILURE, this.conn, pdu, sms);
+          this.close();
         },
       );
     }
